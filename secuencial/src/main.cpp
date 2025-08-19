@@ -141,10 +141,10 @@ int main(int argc, char** argv) {
             c.y += c.vy * dt;
 
             
-            if (c.x - c.r < 0.0f)      { c.x = c.r;             c.vx = -c.vx * 0.99f; }
-            if (c.x + c.r > args.W)    { c.x = args.W - c.r;    c.vx = -c.vx * 0.99f; }
-            if (c.y - c.r < 0.0f)      { c.y = c.r;             c.vy = -c.vy * 0.99f; }
-            if (c.y + c.r > args.H)    { c.y = args.H - c.r;    c.vy = -c.vy * 0.99f; }
+            if (c.x - c.r < 0.0f)      { c.x = c.r;             c.vx = -c.vx * 0.80f; }
+            if (c.x + c.r > args.W)    { c.x = args.W - c.r;    c.vx = -c.vx * 0.40f; }
+            if (c.y - c.r < 0.0f)      { c.y = c.r;             c.vy = -c.vy * 0.60f; }
+            if (c.y + c.r > args.H)    { c.y = args.H - c.r;    c.vy = -c.vy * 0.90f; }
         }
 
         
