@@ -1,1 +1,0 @@
-# ScreenSaver_PPRY
