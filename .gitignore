@@ -1,0 +1,36 @@
+# Directorios de compilación (CMake y manuales)
+/build/
+/build_*/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/Makefile
+
+# Binarios generados (secuencial y paralelo)
+/screensaver
+/screensaver_seq
+/screensaver_omp_base
+/screensaver_opt
+*.out
+
+# Archivos temporales de compilacion
+*.o
+*.obj
+*.pdb
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.log
+*.tmp
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Otros
+*.DS_Store
