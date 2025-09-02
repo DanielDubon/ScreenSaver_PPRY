@@ -6,12 +6,43 @@
 /cmake_install.cmake
 /Makefile
 
+# Añadir estas líneas que faltan:
+**/build/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/Makefile
+*.dir/
+CMakeDirectoryInformation.cmake
+Makefile.cmake
+Makefile2
+TargetDirectories.txt
+cmake.check_cache
+progress.marks
+DependInfo.cmake
+build.make
+cmake_clean.cmake
+compiler_depend.make
+compiler_depend.ts
+depend.make
+flags.make
+link.txt
+progress.make
+*.o.d
+
 # Binarios generados (secuencial y paralelo)
 /screensaver
 /screensaver_seq
 /screensaver_omp_base
 /screensaver_opt
 *.out
+
+# Añadir estos binarios específicos que vi en tu commit:
+demo_speedup
+demo_combined
+main_optimized
+unified_analysis
+screensaver_omp_optimized
 
 # Archivos temporales de compilacion
 *.o
@@ -25,6 +56,9 @@
 *.lib
 *.log
 *.tmp
+
+# Añadir:
+*.bin
 
 # IDEs y editores
 .vscode/
