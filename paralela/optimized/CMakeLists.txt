@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(OpenMP REQUIRED)
 
 # Configurar flags de optimización
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG -ffast-math -funroll-loops -fvectorize -flto -fno-exceptions -fno-rtti")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -Wall -Wextra")
 
 # Agregar directorio de headers
@@ -19,10 +19,6 @@ include_directories(src)
 set(SOURCES
     src/main_optimized.cpp
     src/common.h
-    src/simulation_base.h
-    src/advanced_optimizations.h
-    src/data_structures_optimized.h
-    src/memory_optimizations.h
 )
 
 # Crear ejecutable principal

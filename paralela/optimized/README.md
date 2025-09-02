@@ -1,12 +1,8 @@
-# Analisis de Optimizaciones Paralelas - Screensaver
+# Analisis de Optimizaciones Paralelas - Optimizado
 
 ## Descripcion
 
-Este proyecto implementa y analiza optimizaciones paralelas para una simulación de screensaver con círculos en movimiento. Incluye tres implementaciones principales:
-
-1. **SECUENCIAL**: Implementación secuencial pura
-2. **PARALELO_BASE**: OpenMP básico con `#pragma omp parallel for`
-3. **PARALELO_OPTIMIZADO**: Todas las optimizaciones integradas:
+1. **PARALELO_OPTIMIZADO**: Todas las optimizaciones integradas:
    - Cláusulas OpenMP avanzadas (schedule, reduction, etc.)
    - Optimización de estructuras de datos (SoA, alignment)
    - Optimización de acceso a memoria (prefetching, false sharing)
@@ -17,17 +13,12 @@ Este proyecto implementa y analiza optimizaciones paralelas para una simulación
 ```
 paralela/optimized/
 ├── CMakeLists.txt              # Configuración de CMake
-├── run_analysis.sh             # Script de ejecución principal
-├── clean.sh                    # Script de limpieza
+├── run.sh                      # Script de ejecución
 ├── README.md                   # Este archivo
 └── src/
-    ├── main_optimized.cpp      # Código principal
+    ├── main_optimized.cpp      # Código principal (todo integrado)
     ├── generate_charts.py      # Generador de gráficas
     ├── common.h                # Estructuras básicas
-    ├── simulation_base.h       # Implementación paralelo base
-    ├── advanced_optimizations.h # Optimizaciones avanzadas
-    ├── data_structures_optimized.h # Optimización de estructuras
-    ├── memory_optimizations.h  # Optimización de memoria
     ├── data/                   # Datos CSV generados
     └── charts/                 # Gráficas generadas
 ```
@@ -57,8 +48,8 @@ echo $OMP_NUM_THREADS
 
 ```bash
 # Desde el directorio paralela/optimized/
-chmod +x run_analysis.sh
-./run_analysis.sh
+chmod +x run.sh
+./run.sh
 ```
 
 ### Ejecución Manual
@@ -81,15 +72,16 @@ python3 src/generate_charts.py
 ### Limpieza
 
 ```bash
-chmod +x clean.sh
-./clean.sh
+# Limpiar archivos compilados
+rm -rf build/
+rm -f src/*.o src/main_optimized src/unified_analysis
 ```
 
 ## Resultados
 
 ### Datos Generados
 
-- **CSV**: `build/data/main_optimized.csv` - Datos de rendimiento
+- **CSV**: `src/data/main_optimized.csv` - Datos de rendimiento
 - **Registros**: ~37 registros con métricas de speedup y eficiencia
 
 ### Gráficas Generadas
@@ -141,18 +133,12 @@ chmod +x clean.sh
 
 ## Scripts Disponibles
 
-### run_analysis.sh
+### run.sh
 Script principal que ejecuta todo el análisis:
 - Configura el proyecto con CMake
 - Compila el código
 - Ejecuta el análisis
 - Genera las gráficas
-
-### clean.sh
-Script de limpieza que elimina:
-- Directorio build
-- Archivos compilados
-- Datos y gráficas generadas
 
 ## Troubleshooting
 

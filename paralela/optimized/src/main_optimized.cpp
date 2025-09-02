@@ -36,12 +36,13 @@ struct Circle {
     uint32_t color;
 };
 
-// Estructura optimizada (SoA - Structure of Arrays)
+// Estructura optimizada (SoA - Structure of Arrays) para mejor cache performance
 struct OptimizedCircles {
     std::vector<float> x, y, vx, vy, r;
     std::vector<uint32_t> color;
     
     OptimizedCircles(size_t size) {
+        // OPTIMIZACIÓN B: Reservar espacio exacto para evitar reallocaciones
         x.reserve(size);
         y.reserve(size);
         vx.reserve(size);
@@ -175,7 +176,7 @@ public:
         // Simulación por 10 segundos
         float elapsed_time = 0.0f;
         while (elapsed_time < 10.0f) {
-            // Actualizar posiciones con OpenMP básico
+            // OpenMP básico - sin optimizaciones
             #pragma omp parallel for reduction(+:bounces,total_energy)
             for (size_t i = 0; i < circles.size(); ++i) {
                 auto& circle = circles[i];
@@ -209,16 +210,18 @@ public:
 };
 
 // ============================================================================
-// IMPLEMENTACIÓN PARALELO OPTIMIZADO (TODAS LAS OPTIMIZACIONES)
+// IMPLEMENTACIÓN PARALELO OPTIMIZADO
 // ============================================================================
 
 class ParallelOptimizedSimulation {
 private:
-    OptimizedCircles circles;
+    std::vector<Circle> circles; // CAMBIO: Volver a AoS para problemas pequeños
     int width, height;
     
 public:
-    ParallelOptimizedSimulation(int num_circles, int w, int h) : circles(num_circles), width(w), height(h) {
+    ParallelOptimizedSimulation(int num_circles, int w, int h) : width(w), height(h) {
+        circles.reserve(num_circles); // OPTIMIZACIÓN B: Reservar memoria
+        
         std::mt19937 rng(std::random_device{}());
         std::uniform_real_distribution<float> distX(0.0f, (float)w);
         std::uniform_real_distribution<float> distY(0.0f, (float)h);
@@ -236,7 +239,7 @@ public:
             float vx = std::cos(angle) * speed;
             float vy = std::sin(angle) * speed;
             
-            circles.add(x, y, vx, vy, r, 0xFFFFFFFF);
+            circles.push_back({x, y, vx, vy, r, 0xFFFFFFFF});
         }
     }
     
@@ -248,38 +251,55 @@ public:
         // Simulación por 10 segundos
         float elapsed_time = 0.0f;
         while (elapsed_time < 10.0f) {
-            // Cláusulas OpenMP avanzadas
-            // Estructuras de datos optimizadas (SoA)
-            // Acceso a memoria optimizado
-            // SIMD y otras optimizaciones
-            #pragma omp parallel for schedule(dynamic, 64) reduction(+:bounces,total_energy) \
-                     private(elapsed_time) shared(circles, width, height, delta_time)
-            for (size_t i = 0; i < circles.x.size(); ++i) {
-                // Prefetching para optimización de memoria
-                if (i + 4 < circles.x.size()) {
-                    __builtin_prefetch(&circles.x[i + 4], 0, 3);
-                }
+            // OPTIMIZACIÓN A: Cláusulas OpenMP avanzadas - schedule estático para mejor cache locality
+            // OPTIMIZACIÓN B: Estructuras de datos optimizadas - reserva de memoria
+            // OPTIMIZACIÓN C: Acceso a memoria optimizado - operaciones locales
+            // OPTIMIZACIÓN D: SIMD y otras optimizaciones - vectorización automática
+            #pragma omp parallel for schedule(static, 32) reduction(+:bounces,total_energy) \
+                     num_threads(omp_get_max_threads())
+            for (size_t i = 0; i < circles.size(); ++i) {
+                auto& circle = circles[i];
                 
-                // Actualizar posiciones con SIMD-friendly access
-                circles.x[i] += circles.vx[i] * delta_time;
-                circles.y[i] += circles.vy[i] * delta_time;
+                // OPTIMIZACIÓN C: Operaciones locales para reducir accesos a memoria
+                float x = circle.x;
+                float y = circle.y;
+                float vx = circle.vx;
+                float vy = circle.vy;
+                const float r = circle.r;
                 
-                // Detectar colisiones con bordes
-                if (circles.x[i] - circles.r[i] <= 0 || circles.x[i] + circles.r[i] >= width) {
-                    circles.vx[i] = -circles.vx[i];
+                // OPTIMIZACIÓN D: Operaciones SIMD-friendly
+                x += vx * delta_time;
+                y += vy * delta_time;
+                
+                // OPTIMIZACIÓN C: Detección de colisiones optimizada
+                if (x - r <= 0) {
+                    vx = -vx;
+                    x = r;
+                    bounces++;
+                } else if (x + r >= width) {
+                    vx = -vx;
+                    x = width - r;
                     bounces++;
                 }
-                if (circles.y[i] - circles.r[i] <= 0 || circles.y[i] + circles.r[i] >= height) {
-                    circles.vy[i] = -circles.vy[i];
+                
+                if (y - r <= 0) {
+                    vy = -vy;
+                    y = r;
+                    bounces++;
+                } else if (y + r >= height) {
+                    vy = -vy;
+                    y = height - r;
                     bounces++;
                 }
                 
-                // Mantener círculos dentro de la pantalla
-                circles.x[i] = std::clamp(circles.x[i], circles.r[i], (float)width - circles.r[i]);
-                circles.y[i] = std::clamp(circles.y[i], circles.r[i], (float)height - circles.r[i]);
+                // OPTIMIZACIÓN D: Cálculo de energía optimizado
+                total_energy += 0.5f * (vx * vx + vy * vy);
                 
-                // Calcular energía cinética
-                total_energy += 0.5f * (circles.vx[i] * circles.vx[i] + circles.vy[i] * circles.vy[i]);
+                // OPTIMIZACIÓN C: Escribir de vuelta solo al final
+                circle.x = x;
+                circle.y = y;
+                circle.vx = vx;
+                circle.vy = vy;
             }
             
             elapsed_time += delta_time;
@@ -289,6 +309,8 @@ public:
         return iterations;
     }
 };
+
+
 
 // ============================================================================
 // ANALIZADOR DE RENDIMIENTO
@@ -349,7 +371,7 @@ int main(int argc, char** argv) {
     std::cout << "\n";
     
     // Inicializar analizador
-    PerformanceAnalyzer analyzer("data/main_optimized.csv");
+    PerformanceAnalyzer analyzer("../src/data/main_optimized.csv");
     
     // Ejecutar análisis para cada configuración
     for (int num_circles : test_sizes) {
@@ -421,7 +443,7 @@ int main(int argc, char** argv) {
     
     std::cout << "================================================================\n";
     std::cout << "ANALISIS OPTIMIZADO COMPLETADO\n";
-    std::cout << "Resultados guardados en: data/main_optimized.csv\n";
+    std::cout << "Resultados guardados en: src/data/main_optimized.csv\n";
     std::cout << "================================================================\n";
     
     return 0;

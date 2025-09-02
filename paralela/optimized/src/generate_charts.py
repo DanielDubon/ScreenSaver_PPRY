@@ -5,10 +5,12 @@ GENERADOR DE GRAFICAS PARA ANALISIS DE OPTIMIZACIONES PARALELAS
 
 Este script genera gráficas específicas para el análisis de optimizaciones:
 - Cláusulas OpenMP avanzadas
-- Optimización de estructuras de datos
+- Optimización de estructuras de datos  
 - Optimización de acceso a memoria
 - Otros mecanismos de optimización
 - Comparación Base vs Optimizado
+
+Cada gráfica se enfoca en demostrar la mejora del speedup de la versión optimizada
 """
 
 import pandas as pd
@@ -22,12 +24,12 @@ import os
 # Configurar estilo profesional
 plt.style.use('seaborn-v0_8')
 rcParams['font.family'] = 'DejaVu Sans'
-rcParams['font.size'] = 11
-rcParams['axes.titlesize'] = 14
-rcParams['axes.labelsize'] = 12
-rcParams['xtick.labelsize'] = 10
-rcParams['ytick.labelsize'] = 10
-rcParams['legend.fontsize'] = 10
+rcParams['font.size'] = 12
+rcParams['axes.titlesize'] = 16
+rcParams['axes.labelsize'] = 14
+rcParams['xtick.labelsize'] = 12
+rcParams['ytick.labelsize'] = 12
+rcParams['legend.fontsize'] = 12
 
 def load_data(csv_file):
     """Cargar datos del archivo CSV"""
@@ -44,337 +46,266 @@ def load_data(csv_file):
         return None
 
 def create_openmp_advanced_chart(df, output_file="openmp_advanced_analysis.png"):
-    """Gráfica para cláusulas OpenMP avanzadas"""
+    """
+    Inciso A: Uso de cláusulas y directivas de OpenMP no vistas en clase
+    Gráfica que muestra el speedup por número de hilos comparando Base vs Optimizado
+    """
     plt.figure(figsize=(12, 8))
     
     # Filtrar solo implementaciones paralelas
     parallel_df = df[df['Implementation'] != 'SECUENCIAL']
     
-    # Crear subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
-    
-    # 1. Speedup por número de hilos
+    # Agrupar datos por número de hilos e implementación
     speedup_by_threads = parallel_df.groupby(['NumThreads', 'Implementation'])['Speedup'].mean().unstack()
-    speedup_by_threads.plot(kind='line', marker='o', ax=ax1, linewidth=3, markersize=8)
-    ax1.set_xlabel('Número de Hilos')
-    ax1.set_ylabel('Speedup')
-    ax1.set_title('Cláusulas OpenMP Avanzadas\nSpeedup vs Número de Hilos')
-    ax1.grid(True, alpha=0.3)
-    ax1.legend(title='Implementación')
     
-    # 2. Eficiencia por número de hilos
-    efficiency_by_threads = parallel_df.groupby(['NumThreads', 'Implementation'])['Efficiency'].mean().unstack()
-    efficiency_by_threads.plot(kind='line', marker='s', ax=ax2, linewidth=3, markersize=8)
-    ax2.set_xlabel('Número de Hilos')
-    ax2.set_ylabel('Eficiencia (%)')
-    ax2.set_title('Cláusulas OpenMP Avanzadas\nEficiencia vs Número de Hilos')
-    ax2.grid(True, alpha=0.3)
-    ax2.legend(title='Implementación')
+    # Crear la gráfica
+    ax = speedup_by_threads.plot(kind='line', marker='o', linewidth=4, markersize=10, figsize=(12, 8))
     
-    # 3. Speedup por número de círculos
-    speedup_by_circles = parallel_df.groupby(['NumCircles', 'Implementation'])['Speedup'].mean().unstack()
-    speedup_by_circles.plot(kind='bar', ax=ax3, alpha=0.8)
-    ax3.set_xlabel('Número de Círculos')
-    ax3.set_ylabel('Speedup')
-    ax3.set_title('Cláusulas OpenMP Avanzadas\nSpeedup vs Número de Círculos')
-    ax3.grid(True, alpha=0.3)
-    ax3.legend(title='Implementación')
-    ax3.tick_params(axis='x', rotation=45)
+    # Configurar la gráfica
+    plt.title('Inciso A: Cláusulas OpenMP Avanzadas\nSpeedup vs Número de Hilos', fontsize=18, pad=20)
+    plt.xlabel('Número de Hilos', fontsize=14)
+    plt.ylabel('Speedup', fontsize=14)
+    plt.grid(True, alpha=0.3, linestyle='--')
     
-    # 4. Comparación de tiempo de ejecución
-    time_comparison = parallel_df.groupby('Implementation')['ExecutionTime'].mean().sort_values(ascending=False)
-    bars = ax4.bar(time_comparison.index, time_comparison.values, 
-                   color=['#1f77b4', '#ff7f0e'], alpha=0.8)
-    ax4.set_ylabel('Tiempo de Ejecución Promedio (s)')
-    ax4.set_title('Cláusulas OpenMP Avanzadas\nTiempo de Ejecución por Implementación')
-    ax4.grid(True, alpha=0.3)
-    ax4.tick_params(axis='x', rotation=45)
+    # Personalizar colores
+    colors = ['#FF6B6B', '#4ECDC4']
+    for i, line in enumerate(ax.get_lines()):
+        line.set_color(colors[i])
+        line.set_linewidth(4)
+        line.set_markersize(10)
     
-    # Agregar valores en las barras
-    for bar, value in zip(bars, time_comparison.values):
-        height = bar.get_height()
-        ax4.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                f'{value:.3f}s', ha='center', va='bottom')
+    plt.legend(title='Implementación', title_fontsize=12, fontsize=12, 
+               loc='upper left', framealpha=0.9, shadow=True)
+    
+    for impl in speedup_by_threads.columns:
+        for threads, speedup in speedup_by_threads[impl].items():
+            if not pd.isna(speedup):
+                color = colors[0] if 'BASE' in impl else colors[1]
+                plt.annotate(f'{speedup:.2f}x', 
+                           (threads, speedup), 
+                           textcoords="offset points", 
+                           xytext=(0,10), 
+                           ha='center', va='bottom',
+                           fontweight='bold',
+                           color=color)
+    
+    base_avg = speedup_by_threads.get('PARALELO_BASE', pd.Series()).mean()
+    opt_avg = speedup_by_threads.get('PARALELO_OPTIMIZADO', pd.Series()).mean()
+    
+    if not pd.isna(base_avg) and not pd.isna(opt_avg):
+        improvement = ((opt_avg - base_avg) / base_avg) * 100
+        plt.text(0.02, 0.98, f'Mejora Promedio: {improvement:.1f}%', 
+                transform=ax.transAxes, fontsize=12, fontweight='bold',
+                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
     
     plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"Gráfica OpenMP avanzado guardada: {output_file}")
     plt.close()
 
 def create_data_structures_chart(df, output_file="data_structures_analysis.png"):
-    """Gráfica para optimización de estructuras de datos"""
+    """
+    Inciso B: Optimización en la creación y uso de estructuras de datos
+    Gráfica de barras mostrando speedup promedio por implementación
+    """
     plt.figure(figsize=(12, 8))
     
     # Filtrar solo implementaciones paralelas
     parallel_df = df[df['Implementation'] != 'SECUENCIAL']
     
-    # Crear subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+    # Calcular speedup promedio por implementación
+    speedup_avg = parallel_df.groupby('Implementation')['Speedup'].mean().sort_values(ascending=False)
     
-    # 1. Mejora de rendimiento por tamaño de datos
-    improvement_by_size = []
-    circle_sizes = sorted(parallel_df['NumCircles'].unique())
+    # Crear la gráfica de barras
+    colors = ['#4ECDC4' if 'OPTIMIZADO' in impl else '#FF6B6B' for impl in speedup_avg.index]
+    bars = plt.bar(speedup_avg.index, speedup_avg.values, color=colors, alpha=0.8, width=0.6)
     
-    for size in circle_sizes:
-        size_data = parallel_df[parallel_df['NumCircles'] == size]
-        base_avg = size_data[size_data['Implementation'] == 'PARALELO_BASE']['Speedup'].mean()
-        opt_avg = size_data[size_data['Implementation'] == 'PARALELO_OPTIMIZADO']['Speedup'].mean()
-        improvement = ((opt_avg - base_avg) / base_avg) * 100 if base_avg > 0 else 0
-        improvement_by_size.append(improvement)
+    # Configurar la gráfica
+    plt.title('Inciso B: Optimización de Estructuras de Datos\nSpeedup Promedio por Implementación', 
+              fontsize=18, pad=20)
+    plt.ylabel('Speedup Promedio', fontsize=14)
+    plt.xlabel('Implementación', fontsize=14)
+    plt.grid(True, alpha=0.3, axis='y', linestyle='--')
     
-    ax1.bar(circle_sizes, improvement_by_size, color='#2ca02c', alpha=0.8)
-    ax1.set_xlabel('Número de Círculos')
-    ax1.set_ylabel('Mejora de Rendimiento (%)')
-    ax1.set_title('Optimización de Estructuras de Datos\nMejora vs Tamaño de Datos')
-    ax1.grid(True, alpha=0.3)
+    for bar, value in zip(bars, speedup_avg.values):
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2., height + 0.05,
+                f'{value:.2f}x', ha='center', va='bottom', 
+                fontsize=12, fontweight='bold')
     
-    # Agregar valores en las barras
-    for i, v in enumerate(improvement_by_size):
-        ax1.text(circle_sizes[i], v + 0.5, f'{v:.1f}%', ha='center', va='bottom')
+    if len(speedup_avg) >= 2:
+        base_speedup = speedup_avg.get('PARALELO_BASE', 0)
+        opt_speedup = speedup_avg.get('PARALELO_OPTIMIZADO', 0)
+        
+        if base_speedup > 0:
+            improvement = ((opt_speedup - base_speedup) / base_speedup) * 100
+            plt.text(0.02, 0.98, f'Mejora: {improvement:.1f}%\n({opt_speedup:.2f}x vs {base_speedup:.2f}x)', 
+                    transform=plt.gca().transAxes, fontsize=12, fontweight='bold',
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.8))
     
-    # 2. Eficiencia de memoria por implementación
-    efficiency_comparison = parallel_df.groupby('Implementation')['Efficiency'].mean().sort_values(ascending=True)
-    bars = ax2.barh(efficiency_comparison.index, efficiency_comparison.values, 
-                    color=['#1f77b4', '#ff7f0e'], alpha=0.8)
-    ax2.set_xlabel('Eficiencia Promedio (%)')
-    ax2.set_title('Optimización de Estructuras de Datos\nEficiencia por Implementación')
-    ax2.grid(True, alpha=0.3)
-    
-    # Agregar valores en las barras
-    for bar, value in zip(bars, efficiency_comparison.values):
-        width = bar.get_width()
-        ax2.text(width + 0.5, bar.get_y() + bar.get_height()/2.,
-                f'{value:.1f}%', ha='left', va='center')
-    
-    # 3. Escalabilidad por número de hilos
-    scalability_data = parallel_df.groupby(['NumThreads', 'Implementation'])['Speedup'].mean().unstack()
-    scalability_data.plot(kind='line', marker='o', ax=ax3, linewidth=3, markersize=8)
-    ax3.set_xlabel('Número de Hilos')
-    ax3.set_ylabel('Speedup')
-    ax3.set_title('Optimización de Estructuras de Datos\nEscalabilidad vs Número de Hilos')
-    ax3.grid(True, alpha=0.3)
-    ax3.legend(title='Implementación')
-    
-    # 4. Comparación de rendimiento por configuración
-    pivot_data = parallel_df.pivot_table(
-        index='NumCircles', 
-        columns='Implementation', 
-        values='Speedup', 
-        aggfunc='mean'
-    )
-    pivot_data.plot(kind='bar', ax=ax4, alpha=0.8)
-    ax4.set_xlabel('Número de Círculos')
-    ax4.set_ylabel('Speedup Promedio')
-    ax4.set_title('Optimización de Estructuras de Datos\nRendimiento por Configuración')
-    ax4.grid(True, alpha=0.3)
-    ax4.legend(title='Implementación')
-    ax4.tick_params(axis='x', rotation=45)
+    plt.xticks(rotation=0)
     
     plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"Gráfica estructuras de datos guardada: {output_file}")
     plt.close()
 
 def create_memory_access_chart(df, output_file="memory_access_analysis.png"):
-    """Gráfica para optimización de acceso a memoria"""
+    """
+    Inciso C: Optimización en los mecanismos de acceso a memoria
+    Gráfica que muestra el speedup por tamaño de problema (número de círculos)
+    """
     plt.figure(figsize=(12, 8))
     
     # Filtrar solo implementaciones paralelas
     parallel_df = df[df['Implementation'] != 'SECUENCIAL']
     
-    # Crear subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+    # Agrupar datos por número de círculos e implementación
+    speedup_by_circles = parallel_df.groupby(['NumCircles', 'Implementation'])['Speedup'].mean().unstack()
     
-    # 1. Análisis de cache performance
-    cache_performance = parallel_df.groupby(['NumThreads', 'Implementation'])['ExecutionTime'].mean().unstack()
-    cache_performance.plot(kind='line', marker='s', ax=ax1, linewidth=3, markersize=8)
-    ax1.set_xlabel('Número de Hilos')
-    ax1.set_ylabel('Tiempo de Ejecución (s)')
-    ax1.set_title('Optimización de Acceso a Memoria\nCache Performance vs Número de Hilos')
-    ax1.grid(True, alpha=0.3)
-    ax1.legend(title='Implementación')
+    # Crear gráfica de barras agrupadas
+    ax = speedup_by_circles.plot(kind='bar', figsize=(12, 8), width=0.8, alpha=0.8)
     
-    # 2. Mejora de rendimiento por hilos
-    improvement_by_threads = []
-    thread_counts = sorted(parallel_df['NumThreads'].unique())
+    # Configurar colores
+    colors = ['#FF6B6B', '#4ECDC4']
+    for i, bar_group in enumerate(ax.containers):
+        for bar in bar_group:
+            bar.set_color(colors[i])
     
-    for threads in thread_counts:
-        thread_data = parallel_df[parallel_df['NumThreads'] == threads]
-        base_avg = thread_data[thread_data['Implementation'] == 'PARALELO_BASE']['Speedup'].mean()
-        opt_avg = thread_data[thread_data['Implementation'] == 'PARALELO_OPTIMIZADO']['Speedup'].mean()
-        improvement = ((opt_avg - base_avg) / base_avg) * 100 if base_avg > 0 else 0
-        improvement_by_threads.append(improvement)
+    # Configurar la gráfica
+    plt.title('Inciso C: Optimización de Acceso a Memoria\nSpeedup vs Tamaño del Problema', 
+              fontsize=18, pad=20)
+    plt.xlabel('Número de Círculos', fontsize=14)
+    plt.ylabel('Speedup', fontsize=14)
+    plt.grid(True, alpha=0.3, axis='y', linestyle='--')
     
-    ax2.bar(thread_counts, improvement_by_threads, color='#d62728', alpha=0.8)
-    ax2.set_xlabel('Número de Hilos')
-    ax2.set_ylabel('Mejora de Rendimiento (%)')
-    ax2.set_title('Optimización de Acceso a Memoria\nMejora vs Número de Hilos')
-    ax2.grid(True, alpha=0.3)
+    plt.legend(title='Implementación', title_fontsize=12, fontsize=12, 
+               loc='upper left', framealpha=0.9, shadow=True)
     
-    # Agregar valores en las barras
-    for i, v in enumerate(improvement_by_threads):
-        ax2.text(thread_counts[i], v + 0.5, f'{v:.1f}%', ha='center', va='bottom')
+    for container in ax.containers:
+        ax.bar_label(container, fmt='%.2fx', padding=3, fontweight='bold')
     
-    # 3. Eficiencia de memoria por tamaño de datos
-    memory_efficiency = parallel_df.groupby(['NumCircles', 'Implementation'])['Efficiency'].mean().unstack()
-    memory_efficiency.plot(kind='bar', ax=ax3, alpha=0.8)
-    ax3.set_xlabel('Número de Círculos')
-    ax3.set_ylabel('Eficiencia (%)')
-    ax3.set_title('Optimización de Acceso a Memoria\nEficiencia vs Tamaño de Datos')
-    ax3.grid(True, alpha=0.3)
-    ax3.legend(title='Implementación')
-    ax3.tick_params(axis='x', rotation=45)
+    plt.xticks(rotation=45)
     
-    # 4. Comparación de throughput
-    throughput_data = parallel_df.groupby('Implementation')['Speedup'].mean().sort_values(ascending=True)
-    bars = ax4.barh(throughput_data.index, throughput_data.values, 
-                    color=['#1f77b4', '#ff7f0e'], alpha=0.8)
-    ax4.set_xlabel('Speedup Promedio')
-    ax4.set_title('Optimización de Acceso a Memoria\nThroughput por Implementación')
-    ax4.grid(True, alpha=0.3)
+    base_avg = speedup_by_circles.get('PARALELO_BASE', pd.Series()).mean()
+    opt_avg = speedup_by_circles.get('PARALELO_OPTIMIZADO', pd.Series()).mean()
     
-    # Agregar valores en las barras
-    for bar, value in zip(bars, throughput_data.values):
-        width = bar.get_width()
-        ax4.text(width + 0.01, bar.get_y() + bar.get_height()/2.,
-                f'{value:.2f}x', ha='left', va='center')
+    if not pd.isna(base_avg) and not pd.isna(opt_avg):
+        improvement = ((opt_avg - base_avg) / base_avg) * 100
+        plt.text(0.02, 0.98, f'Mejora Promedio: {improvement:.1f}%', 
+                transform=ax.transAxes, fontsize=12, fontweight='bold',
+                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
     
     plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"Gráfica acceso a memoria guardada: {output_file}")
     plt.close()
 
 def create_other_mechanisms_chart(df, output_file="other_mechanisms_analysis.png"):
-    """Gráfica para otros mecanismos de optimización"""
+    """
+    Inciso D: Cualquier otro mecanismo de optimización
+    Gráfica de líneas mostrando eficiencia por número de hilos
+    """
     plt.figure(figsize=(12, 8))
     
     # Filtrar solo implementaciones paralelas
     parallel_df = df[df['Implementation'] != 'SECUENCIAL']
     
-    # Crear subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+    # Agrupar datos por número de hilos e implementación para eficiencia
+    efficiency_by_threads = parallel_df.groupby(['NumThreads', 'Implementation'])['Efficiency'].mean().unstack()
     
-    # 1. Análisis de optimizaciones avanzadas
-    advanced_analysis = parallel_df.groupby(['NumThreads', 'Implementation'])['Speedup'].mean().unstack()
-    advanced_analysis.plot(kind='line', marker='^', ax=ax1, linewidth=3, markersize=8)
-    ax1.set_xlabel('Número de Hilos')
-    ax1.set_ylabel('Speedup')
-    ax1.set_title('Otros Mecanismos de Optimización\nSpeedup vs Número de Hilos')
-    ax1.grid(True, alpha=0.3)
-    ax1.legend(title='Implementación')
+    ax = efficiency_by_threads.plot(kind='line', marker='s', linewidth=4, markersize=10, figsize=(12, 8))
     
-    # 2. Eficiencia de optimizaciones
-    optimization_efficiency = parallel_df.groupby(['NumCircles', 'Implementation'])['Efficiency'].mean().unstack()
-    optimization_efficiency.plot(kind='line', marker='o', ax=ax2, linewidth=3, markersize=8)
-    ax2.set_xlabel('Número de Círculos')
-    ax2.set_ylabel('Eficiencia (%)')
-    ax2.set_title('Otros Mecanismos de Optimización\nEficiencia vs Tamaño de Datos')
-    ax2.grid(True, alpha=0.3)
-    ax2.legend(title='Implementación')
+    # Configurar la gráfica
+    plt.title('Inciso D: Otros Mecanismos de Optimización\nEficiencia vs Número de Hilos', 
+              fontsize=18, pad=20)
+    plt.xlabel('Número de Hilos', fontsize=14)
+    plt.ylabel('Eficiencia (%)', fontsize=14)
+    plt.grid(True, alpha=0.3, linestyle='--')
     
-    # 3. Comparación de rendimiento máximo
-    max_performance = parallel_df.groupby('Implementation')['Speedup'].max().sort_values(ascending=True)
-    bars = ax3.barh(max_performance.index, max_performance.values, 
-                    color=['#1f77b4', '#ff7f0e'], alpha=0.8)
-    ax3.set_xlabel('Speedup Máximo')
-    ax3.set_title('Otros Mecanismos de Optimización\nRendimiento Máximo por Implementación')
-    ax3.grid(True, alpha=0.3)
+    # Personalizar colores
+    colors = ['#FF6B6B', '#4ECDC4']
+    for i, line in enumerate(ax.get_lines()):
+        line.set_color(colors[i])
+        line.set_linewidth(4)
+        line.set_markersize(10)
+
+    plt.legend(title='Implementación', title_fontsize=12, fontsize=12, 
+               loc='upper right', framealpha=0.9, shadow=True)
     
-    # Agregar valores en las barras
-    for bar, value in zip(bars, max_performance.values):
-        width = bar.get_width()
-        ax3.text(width + 0.01, bar.get_y() + bar.get_height()/2.,
-                f'{value:.2f}x', ha='left', va='center')
+    for impl in efficiency_by_threads.columns:
+        for threads, efficiency in efficiency_by_threads[impl].items():
+            if not pd.isna(efficiency):
+                color = colors[0] if 'BASE' in impl else colors[1]
+                plt.annotate(f'{efficiency:.1f}%', 
+                           (threads, efficiency), 
+                           textcoords="offset points", 
+                           xytext=(0,10), 
+                           ha='center', va='bottom',
+                           fontweight='bold',
+                           color=color)
     
-    # 4. Análisis de escalabilidad
-    scalability_analysis = parallel_df.pivot_table(
-        index='NumThreads', 
-        columns='NumCircles', 
-        values='Speedup', 
-        aggfunc='mean'
-    )
-    sns.heatmap(scalability_analysis, annot=True, fmt='.2f', cmap='YlOrRd', 
-                cbar_kws={'label': 'Speedup'}, ax=ax4)
-    ax4.set_title('Otros Mecanismos de Optimización\nMapa de Calor: Escalabilidad')
-    ax4.set_xlabel('Número de Círculos')
-    ax4.set_ylabel('Número de Hilos')
+    base_avg = efficiency_by_threads.get('PARALELO_BASE', pd.Series()).mean()
+    opt_avg = efficiency_by_threads.get('PARALELO_OPTIMIZADO', pd.Series()).mean()
+    
+    if not pd.isna(base_avg) and not pd.isna(opt_avg):
+        improvement = opt_avg - base_avg
+        plt.text(0.02, 0.02, f'Mejora en Eficiencia: +{improvement:.1f} puntos porcentuales', 
+                transform=ax.transAxes, fontsize=12, fontweight='bold',
+                verticalalignment='bottom', bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
     
     plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"Gráfica otros mecanismos guardada: {output_file}")
     plt.close()
 
 def create_speedup_comparison_chart(df, output_file="speedup_comparison.png"):
-    """Gráfica de comparación de speedup: Base vs Optimizado"""
-    plt.figure(figsize=(14, 10))
+    """
+    Comparación general: Speedup máximo alcanzado por cada implementación
+    """
+    plt.figure(figsize=(12, 8))
     
     # Filtrar solo implementaciones paralelas
     parallel_df = df[df['Implementation'] != 'SECUENCIAL']
     
-    # Crear subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+    # Calcular speedup máximo por implementación
+    max_speedup = parallel_df.groupby('Implementation')['Speedup'].max().sort_values(ascending=True)
     
-    # 1. Comparación general de speedup
-    speedup_comparison = parallel_df.groupby('Implementation')['Speedup'].mean().sort_values(ascending=True)
-    bars = ax1.barh(speedup_comparison.index, speedup_comparison.values, 
-                    color=['#1f77b4', '#ff7f0e'], alpha=0.8)
-    ax1.set_xlabel('Speedup Promedio')
-    ax1.set_title('Comparación General: Base vs Optimizado\nSpeedup Promedio')
-    ax1.grid(True, alpha=0.3)
+    # Crear gráfica horizontal
+    colors = ['#FF6B6B' if 'BASE' in impl else '#4ECDC4' for impl in max_speedup.index]
+    bars = plt.barh(max_speedup.index, max_speedup.values, color=colors, alpha=0.8, height=0.6)
     
-    # Agregar valores en las barras
-    for bar, value in zip(bars, speedup_comparison.values):
+    # Configurar la gráfica
+    plt.title('Comparación General: Speedup Máximo Alcanzado\nBase vs Optimizado', 
+              fontsize=18, pad=20)
+    plt.xlabel('Speedup Máximo', fontsize=14)
+    plt.ylabel('Implementación', fontsize=14)
+    plt.grid(True, alpha=0.3, axis='x', linestyle='--')
+    
+    for bar, value in zip(bars, max_speedup.values):
         width = bar.get_width()
-        ax1.text(width + 0.01, bar.get_y() + bar.get_height()/2.,
-                f'{value:.2f}x', ha='left', va='center')
+        plt.text(width + 0.05, bar.get_y() + bar.get_height()/2.,
+                f'{value:.2f}x', ha='left', va='center', 
+                fontsize=12, fontweight='bold')
     
-    # 2. Speedup por número de hilos
-    speedup_by_threads = parallel_df.groupby(['NumThreads', 'Implementation'])['Speedup'].mean().unstack()
-    speedup_by_threads.plot(kind='line', marker='o', ax=ax2, linewidth=3, markersize=8)
-    ax2.set_xlabel('Número de Hilos')
-    ax2.set_ylabel('Speedup')
-    ax2.set_title('Speedup vs Número de Hilos\nBase vs Optimizado')
-    ax2.grid(True, alpha=0.3)
-    ax2.legend(title='Implementación')
-    
-    # 3. Speedup por número de círculos
-    speedup_by_circles = parallel_df.groupby(['NumCircles', 'Implementation'])['Speedup'].mean().unstack()
-    speedup_by_circles.plot(kind='bar', ax=ax3, alpha=0.8)
-    ax3.set_xlabel('Número de Círculos')
-    ax3.set_ylabel('Speedup')
-    ax3.set_title('Speedup vs Número de Círculos\nBase vs Optimizado')
-    ax3.grid(True, alpha=0.3)
-    ax3.legend(title='Implementación')
-    ax3.tick_params(axis='x', rotation=45)
-    
-    # 4. Mejora porcentual
-    base_avg = parallel_df[parallel_df['Implementation'] == 'PARALELO_BASE']['Speedup'].mean()
-    opt_avg = parallel_df[parallel_df['Implementation'] == 'PARALELO_OPTIMIZADO']['Speedup'].mean()
-    improvement = ((opt_avg - base_avg) / base_avg) * 100
-    
-    labels = ['Paralelo Base', 'Paralelo Optimizado']
-    values = [base_avg, opt_avg]
-    colors = ['#1f77b4', '#ff7f0e']
-    
-    bars = ax4.bar(labels, values, color=colors, alpha=0.8)
-    ax4.set_ylabel('Speedup Promedio')
-    ax4.set_title(f'Comparación Final: Base vs Optimizado\nMejora: {improvement:.1f}%')
-    ax4.grid(True, alpha=0.3)
-    
-    # Agregar valores en las barras
-    for bar, value in zip(bars, values):
-        height = bar.get_height()
-        ax4.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                f'{value:.2f}x', ha='center', va='bottom')
+    if len(max_speedup) >= 2:
+        base_max = max_speedup.get('PARALELO_BASE', 0)
+        opt_max = max_speedup.get('PARALELO_OPTIMIZADO', 0)
+        
+        if base_max > 0:
+            improvement = ((opt_max - base_max) / base_max) * 100
+            plt.text(0.02, 0.98, f'Mejora en Speedup Máximo: {improvement:.1f}%\n({opt_max:.2f}x vs {base_max:.2f}x)', 
+                    transform=plt.gca().transAxes, fontsize=12, fontweight='bold',
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='lightcoral', alpha=0.8))
     
     plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"Gráfica de comparación de speedup guardada: {output_file}")
     plt.close()
 
 def main():
     """Función principal"""
-    csv_file = "data/main_optimized.csv"
+    csv_file = "src/data/main_optimized.csv"
     
     if len(sys.argv) > 1:
         csv_file = sys.argv[1]
@@ -384,18 +315,15 @@ def main():
     print(f"Archivo CSV: {csv_file}")
     print()
     
-    # Cargar datos
     df = load_data(csv_file)
     if df is None:
         return
     
-    # Crear directorio para gráficas si no existe
-    charts_dir = "charts"
+    charts_dir = "src/charts"
     if not os.path.exists(charts_dir):
         os.makedirs(charts_dir)
     
-    # Generar gráficas
-    print("\nGenerando gráficas...")
+    print("\nGenerando gráficas enfocadas en speedup...")
     
     create_openmp_advanced_chart(df, f"{charts_dir}/openmp_advanced_analysis.png")
     create_data_structures_chart(df, f"{charts_dir}/data_structures_analysis.png")
@@ -404,12 +332,28 @@ def main():
     create_speedup_comparison_chart(df, f"{charts_dir}/speedup_comparison.png")
     
     print(f"\nTodas las gráficas han sido guardadas en el directorio: {charts_dir}")
-    print("\nGráficas generadas:")
-    print("- openmp_advanced_analysis.png: Cláusulas OpenMP avanzadas")
-    print("- data_structures_analysis.png: Optimización de estructuras de datos")
-    print("- memory_access_analysis.png: Optimización de acceso a memoria")
-    print("- other_mechanisms_analysis.png: Otros mecanismos de optimización")
-    print("- speedup_comparison.png: Comparación Base vs Optimizado")
+    print("\nGráficas generadas (enfocadas en demostrar mejoras):")
+    print("- openmp_advanced_analysis.png: Inciso A - Cláusulas OpenMP (Speedup vs Hilos)")
+    print("- data_structures_analysis.png: Inciso B - Estructuras de Datos (Speedup Promedio)")
+    print("- memory_access_analysis.png: Inciso C - Acceso a Memoria (Speedup vs Tamaño)")
+    print("- other_mechanisms_analysis.png: Inciso D - Otros Mecanismos (Eficiencia vs Hilos)")
+    print("- speedup_comparison.png: Comparación General (Speedup Máximo)")
+    
+    import glob
+    png_files = glob.glob(f"{charts_dir}/*.png")
+    print(f"\nVerificación: {len(png_files)} gráficas encontradas:")
+    for png_file in png_files:
+        print(f"  - {png_file}")
+    
+    print(f"\nResumen de datos para validación:")
+    parallel_df = df[df['Implementation'] != 'SECUENCIAL']
+    if not parallel_df.empty:
+        summary = parallel_df.groupby('Implementation').agg({
+            'Speedup': ['mean', 'max', 'min'],
+            'Efficiency': 'mean',
+            'ExecutionTime': 'mean'
+        }).round(3)
+        print(summary)
 
 if __name__ == "__main__":
     main()

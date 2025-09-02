@@ -3,13 +3,6 @@
 echo "EJECUTANDO ANALISIS DE OPTIMIZACIONES PARALELAS"
 echo "==============================================="
 
-# Verificar que estamos en el directorio correcto
-if [ ! -f "CMakeLists.txt" ]; then
-    echo "Error: No se encontró CMakeLists.txt"
-    echo "   Ejecuta este script desde el directorio paralela/optimized/"
-    exit 1
-fi
-
 # Crear directorio build si no existe
 mkdir -p build
 cd build
@@ -39,9 +32,9 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Verificando datos generados..."
-if [ -f "data/main_optimized.csv" ]; then
-    echo "CSV generado: data/main_optimized.csv"
-    echo "Registros: $(wc -l < data/main_optimized.csv)"
+if [ -f "../src/data/main_optimized.csv" ]; then
+    echo "CSV generado: src/data/main_optimized.csv"
+    echo "Registros: $(wc -l < ../src/data/main_optimized.csv)"
 else
     echo "Error: No se generó el CSV"
     exit 1
@@ -70,7 +63,7 @@ echo ""
 echo "RESUMEN DEL ANALISIS:"
 echo "====================="
 echo "Archivo principal: src/main_optimized.cpp"
-echo "Datos generados: build/data/main_optimized.csv"
+echo "Datos generados: src/data/main_optimized.csv"
 echo "Gráficas: src/charts/"
 echo ""
 echo "Gráficas generadas:"
