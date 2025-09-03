@@ -1,18 +1,4 @@
 #!/usr/bin/env python3
-"""
-GENERADOR DE GRAFICAS PARA ANALISIS DE OPTIMIZACIONES PARALELAS
-=============================================================
-
-Este script genera gráficas específicas para el análisis de optimizaciones:
-- Cláusulas OpenMP avanzadas
-- Optimización de estructuras de datos  
-- Optimización de acceso a memoria
-- Otros mecanismos de optimización
-- Comparación Base vs Optimizado
-
-Cada gráfica se enfoca en demostrar la mejora del speedup de la versión optimizada
-"""
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
